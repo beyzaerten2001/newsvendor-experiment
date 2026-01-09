@@ -121,7 +121,7 @@ elif st.session_state.page == 'game':
     # We show this every round so the "Framing Effect" is persistent
     st.subheader("Make Your Decision")
     st.write(f"**Unit Cost:** ${COST} | **Selling Price:** ${PRICE}")
-    [cite_start]st.write(f"**Demand:** Uniformly distributed between {DEMAND_MIN} and {DEMAND_MAX} [cite: 20]")
+    st.write(f"**Demand:** Uniformly distributed between {DEMAND_MIN} and {DEMAND_MAX}")
     
     if st.session_state.frame == 'Positive':
         # [cite_start]Positive Frame Text [cite: 22-23]
