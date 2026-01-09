@@ -3,36 +3,47 @@ import pandas as pd
 import random
 
 # --- CONFIGURATION ---
+ACCESS_CODE = "START"  # <--- The password you give students to begin
 PRICE = 10  # p
 COST = 3    # c
 DEMAND_MIN = 50
 DEMAND_MAX = 150
 ROUNDS = 10
 
-# --- SESSION STATE MANAGEMENT ---
+# --- SESSION STATE ---
 if 'page' not in st.session_state:
-    st.session_state.page = 'intro'
-    
+    st.session_state.page = 'lobby' # Start in the Lobby
 if 'frame' not in st.session_state:
-    # Randomly assign Positive or Negative frame
     st.session_state.frame = random.choice(['Positive', 'Negative']) 
-
 if 'round' not in st.session_state:
     st.session_state.round = 1
-
 if 'history' not in st.session_state:
     st.session_state.history = []
-
 if 'warmup_score' not in st.session_state:
     st.session_state.warmup_score = 0
-
 if 'survey_data' not in st.session_state:
     st.session_state.survey_data = {}
 
+# --- PAGE 0: LOBBY (WAITING ROOM) ---
+if st.session_state.page == 'lobby':
+    st.title("Welcome")
+    st.info("Please wait for the instructor to provide the Access Code.")
+    st.write("Do not close this window.")
+    
+    # The Gate
+    code_input = st.text_input("Enter Access Code to Start:", type="password")
+    
+    if st.button("Enter Experiment"):
+        if code_input == ACCESS_CODE:
+            st.session_state.page = 'intro'
+            st.rerun()
+        else:
+            st.error("Incorrect code. Please wait for the instructor.")
+
 # --- PAGE 1: INTRODUCTION ---
-if st.session_state.page == 'intro':
+elif st.session_state.page == 'intro':
     st.title("Experiment: Inventory Management")
-    st.write("### Welcome")
+    st.write("### Instructions")
     st.write("""
     You are participating in a study on decision-making in supply chains.
     
@@ -42,11 +53,7 @@ if st.session_state.page == 'intro':
     * **Demand is uncertain:** It will be a random number between **50 and 150** every week.
     * **Product Type:** This is a **High Margin Product**.
     """)
-    
-    # Explicitly showing p and c here as well
     st.info(f"**Key Financials:**\n\n**Selling Price (p) = ${PRICE}**\n\n**Unit Cost (c) = ${COST}**")
-    
-    st.write("Your goal is to manage your inventory levels effectively based on these costs.")
     
     if st.button("Go to Warm-Up"):
         st.session_state.page = 'warmup'
@@ -55,9 +62,7 @@ if st.session_state.page == 'intro':
 # --- PAGE 2: WARM-UP QUIZ ---
 elif st.session_state.page == 'warmup':
     st.title("Warm-Up Questions")
-    st.write("Please answer the following to verify your understanding of the costs.")
-    
-    # SHOWING P AND C HERE
+    st.write("Please answer the following to verify your understanding.")
     st.markdown(f"### Reference Values: Price (p)=${PRICE} | Cost (c)=${COST}")
     
     with st.form("warmup_form"):
@@ -80,27 +85,22 @@ elif st.session_state.page == 'warmup':
             st.session_state.page = 'pre_experiment_transition'
             st.rerun()
 
-# --- PAGE 3: TRANSITION TO EXPERIMENT ---
+# --- PAGE 3: TRANSITION ---
 elif st.session_state.page == 'pre_experiment_transition':
     st.title("Ready to Start")
     st.success("Warm-up complete!")
-    
-    st.write("### The Experiment")
-    st.write(f"- You will now play **{ROUNDS} rounds** of the ordering game.")
-    st.write("- In each round, enter your order quantity.")
-    st.write("- After you order, you will see the actual demand and your result.")
-    
-    st.warning("Click the button below when you are ready to begin Round 1.")
+    st.write(f"- You will play **{ROUNDS} rounds**.")
+    st.warning("Click below to begin Round 1.")
     
     if st.button("Start Experiment"):
         st.session_state.page = 'game'
         st.rerun()
 
-# --- PAGE 4: THE GAME ROUNDS ---
+# --- PAGE 4: THE GAME ---
 elif st.session_state.page == 'game':
     st.title(f"Round {st.session_state.round} of {ROUNDS}")
     
-    # 1. Show Feedback from Previous Round
+    # Feedback
     if st.session_state.round > 1:
         last = st.session_state.history[-1]
         st.divider()
@@ -115,13 +115,10 @@ elif st.session_state.page == 'game':
             else:
                 opportunity_loss = (last['Demand'] - last['Order']) * (PRICE - COST)
                 st.error(f"**You LOST ${opportunity_loss} of profit for demand you could not meet.**")
-    
     st.divider()
 
-    # 2. Show Framing Text AND Price/Cost
+    # Decision
     st.subheader("Make Your Decision")
-    
-    # --- HERE IS THE P AND C DISPLAY ---
     st.markdown(f"### **Selling Price (p): ${PRICE}** |  **Unit Cost (c): ${COST}**")
     st.write(f"**Demand:** Uniformly distributed between {DEMAND_MIN} and {DEMAND_MAX}")
     
@@ -146,7 +143,6 @@ elif st.session_state.page == 'game':
         </div>
         """, unsafe_allow_html=True)
 
-    # 3. Input
     current_order = st.number_input("How many tires do you want to order?", 
                                     min_value=0, max_value=300, value=100, step=1, 
                                     key=f"input_{st.session_state.round}")
@@ -171,80 +167,56 @@ elif st.session_state.page == 'game':
             st.session_state.page = 'post_experiment_transition'
             st.rerun()
 
-# --- PAGE 5: TRANSITION TO SURVEY ---
+# --- PAGE 5: POST-TRANSITION ---
 elif st.session_state.page == 'post_experiment_transition':
     st.title("Experiment Rounds Completed")
     st.success("You have finished the ordering game.")
-    st.write("You completed this part of the experiment.")
     st.write("Please click below to begin the final short survey.")
-    
     if st.button("Start Survey"):
         st.session_state.page = 'survey'
         st.rerun()
 
-# --- PAGE 6: POST-EXPERIMENT SURVEY ---
+# --- PAGE 6: SURVEY ---
 elif st.session_state.page == 'survey':
     st.title("Final Survey")
-    st.write("Please answer the following questions regarding your decisions and demographics.")
-    
     with st.form("survey_form"):
         st.subheader("1. Decision Perception")
-        st.write("Without analyzing it carefully, which of the following inventory decisions do you consider to be more environmentally friendly?")
-        perception = st.radio("", 
-                              ["Ordering a quantity that minimizes overstock and waste",
-                               "Ordering a larger quantity to fully avoid stockouts",
-                               "Both decisions are equally environmentally friendly"])
+        st.write("Which decision do you consider more environmentally friendly?")
+        perception = st.radio("", ["Minimizing overstock/waste", "Avoiding stockouts", "Both equal"])
         
-        st.subheader("2. Environmental Awareness")
-        st.write("Rate your agreement (1 = Not important, 5 = Extremely important):")
-        
-        c1 = st.slider("When purchasing tires, CO2 reduction is an important decision criterion.", 1, 5, 3)
-        c2 = st.slider("I consider the environmental impact over the full product life cycle.", 1, 5, 3)
-        c3 = st.slider("I prioritize suppliers with environmental certifications (e.g., ISO 14001).", 1, 5, 3)
-        c4 = st.slider("I am willing to accept higher costs for better environmental performance.", 1, 5, 3)
-        c5 = st.slider("I actively aim to reduce waste and overstock to avoid environmental harm.", 1, 5, 3)
+        st.subheader("2. Environmental Awareness (1-5)")
+        c1 = st.slider("CO2 reduction is important to me.", 1, 5, 3)
+        c2 = st.slider("I consider full product life cycle.", 1, 5, 3)
+        c3 = st.slider("I prioritize environmental certifications.", 1, 5, 3)
+        c4 = st.slider("I accept higher costs for eco-performance.", 1, 5, 3)
+        c5 = st.slider("I aim to reduce waste to avoid harm.", 1, 5, 3)
         
         st.subheader("3. Demographics")
         col1, col2 = st.columns(2)
         with col1:
-            industry = st.selectbox("Industry", ["Manufacturing", "Automotive", "Retail/Wholesale", "Logistics", "Pharma", "Other"])
-            company_size = st.selectbox("Company Size", ["Fewer than 50", "50-249", "250-999", "1,000 or more"])
+            industry = st.selectbox("Industry", ["Manufacturing", "Automotive", "Retail", "Logistics", "Pharma", "Other"])
+            company_size = st.selectbox("Company Size", ["<50", "50-249", "250-999", "1000+"])
         with col2:
-            experience = st.selectbox("Experience", ["0-1 years", "2-3 years", "4-6 years", "7-10 years", "More than 10 years"])
+            experience = st.selectbox("Experience", ["0-1 years", "2-3 years", "4-6 years", "7-10 years", ">10 years"])
         
         if st.form_submit_button("Submit Survey"):
             st.session_state.survey_data = {
-                'Perception_Check': perception,
-                'Env_CO2': c1,
-                'Env_Lifecycle': c2,
-                'Env_Certifications': c3,
-                'Env_HigherCost': c4,
-                'Env_ReduceWaste': c5,
-                'Industry': industry,
-                'CompanySize': company_size,
-                'Experience': experience
+                'Perception_Check': perception, 'Env_CO2': c1, 'Env_Lifecycle': c2,
+                'Env_Certifications': c3, 'Env_HigherCost': c4, 'Env_ReduceWaste': c5,
+                'Industry': industry, 'CompanySize': company_size, 'Experience': experience
             }
             st.session_state.page = 'thank_you'
             st.rerun()
 
-# --- PAGE 7: THANK YOU & DOWNLOAD ---
+# --- PAGE 7: DOWNLOAD ---
 elif st.session_state.page == 'thank_you':
     st.balloons()
     st.title("Thank You!")
-    st.success("You have completed the experiment.")
-    st.write("Please download your results below and submit them as instructed.")
+    st.success("Please download your results and submit them.")
     
     df = pd.DataFrame(st.session_state.history)
     df['WarmUp_Score'] = st.session_state.warmup_score
-    
-    for key, value in st.session_state.survey_data.items():
-        df[key] = value
+    for k, v in st.session_state.survey_data.items():
+        df[k] = v
         
-    csv_data = df.to_csv(index=False).encode('utf-8')
-    
-    st.download_button(
-        label="Download Results (CSV)",
-        data=csv_data,
-        file_name="experiment_results.csv",
-        mime="text/csv"
-    )
+    st.download_button("Download Results (CSV)", df.to_csv(index=False).encode('utf-8'), "results.csv", "text/csv")
