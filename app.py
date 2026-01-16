@@ -217,7 +217,7 @@ elif st.session_state.page == 'thank_you':
             try:
                 data_payload = df.to_dict(orient='records')
                 headers = {'Content-Type': 'application/json'}
-                requests.post(https://sheetdb.io/api/v1/7tr3fchy6qvq5, json={"data": data_payload}, headers=headers)
+                requests.post("https://sheetdb.io/api/v1/7tr3fchy6qvq5", json={"data": data_payload}, headers=headers)
                 st.session_state.data_sent = True
                 st.success("✅ Success! Data saved.")
             except Exception as e:
