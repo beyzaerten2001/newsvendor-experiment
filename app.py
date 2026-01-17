@@ -8,8 +8,8 @@ import json
 SHEETDB_URL = "https://sheetdb.io/api/v1/YOUR_EXACT_CODE_HERE" 
 
 ACCESS_CODE = "START" 
-PRICE = 10  # p
-COST = 3    # c
+PRICE = 10 
+COST = 3 
 ROUNDS = 10
 DEMAND_MIN = 50
 DEMAND_MAX = 150
@@ -67,6 +67,23 @@ elif st.session_state.page == 'intro':
     
     st.write(f"Selling Price (p) = ${PRICE} | Unit Cost (c) = ${COST}")
     
+    st.divider()
+    
+    # --- EKSTRA AÇIKLAMA ---
+    st.subheader("How your result is calculated:")
+    st.markdown("""
+    Your goal is to find the right balance between ordering too much and ordering too little.
+    
+    **1. If Demand < Order (Too much inventory):**
+    * You sell what is demanded.
+    * The leftover tires are waste. You **lose the Cost ($3)** for every unsold tire.
+    
+    **2. If Demand > Order (Too little inventory):**
+    * You sell everything you ordered.
+    * You miss out on potential customers. You **lose the potential Profit ($7)** for every sale you missed.
+    """)
+    st.divider()
+    
     if st.button("Start Warm-Up"):
         st.session_state.page = 'warmup'
         st.rerun()
@@ -121,26 +138,20 @@ elif st.session_state.page == 'pre_experiment_transition':
 elif st.session_state.page == 'game':
     st.title(f"Round {st.session_state.round}/{ROUNDS}")
     
-    # --- FEEDBACK SECTION (ROUND 2-10) ---
+    # --- FEEDBACK ---
     if st.session_state.round > 1:
         last = st.session_state.history[-1]
         
-        # Ortak metin
         st.info(f"You ordered {last['Order']} at a cost of ${last['Order'] * COST}. Demand was {last['Demand']}.")
         
-        # Çerçeveye Özel Sonuç Metni
         if st.session_state.frame == 'Positive':
-            # "You earned ..."
             st.success(f"You earned ${last['Profit']}.")
             st.caption("Any inventory remaining has become obsolete. You should order for this week, conditions have not changed.")
         else:
-            # "You lost ..." (Hesaplama: Prompttaki formüle göre)
             if last['Demand'] < last['Order']:
-                # Demand < Order -> Loss = Cost * (Order - Demand)
                 loss_val = (last['Order'] - last['Demand']) * COST
                 st.error(f"You lost ${loss_val}.")
             else:
-                # Demand > Order -> Loss = (10-c) * (Demand - Order)
                 loss_val = (last['Demand'] - last['Order']) * (PRICE - COST)
                 st.error(f"You lost ${loss_val}.")
             
@@ -148,11 +159,10 @@ elif st.session_state.page == 'game':
 
     st.divider()
 
-    # --- INSTRUCTION SECTION (ROUND 1 & REPEATED) ---
-    # Bu metinler Positive/Negative olarak ayrıldı.
+    # --- INSTRUCTION (Font Fixed) ---
+    st.write(f"Your company sells eco-friendly winter tires. You order them for **${COST}** each every week and sell them for **${PRICE}**.")
     
     st.write(f"""
-    Your company sells eco-friendly winter tires. You order them for **${COST}** each every week and sell them for **${PRICE}**. 
     Leftover products will not be utilized for the next periods, and will be thrown away. 
     Demand is uniformly distributed (U[{DEMAND_MIN},{DEMAND_MAX}]). 
     You will decide on the number of products to be ordered each round.
@@ -232,9 +242,10 @@ elif st.session_state.page == 'survey':
         st.markdown("---")
 
         st.subheader("Section B: Demographics")
+        # --- BURASI DÜZELTİLDİ: ARTIK HEPSİ OPEN QUESTION (TEXT INPUT) ---
         industry = st.text_input("4. Industry / Sector:")
-        experience = st.selectbox("5. Experience:", ["0-1 years", "2-3 years", "4-6 years", "7-10 years", "More than 10 years"])
-        company_size = st.selectbox("6. Company size:", ["Fewer than 50", "50-249", "250-999", "1,000 or more"])
+        experience = st.text_input("5. Years of experience in procurement / purchasing / operations:")
+        company_size = st.text_input("6. Company size (approximate number of employees):")
 
         st.markdown("---")
 
