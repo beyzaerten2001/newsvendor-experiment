@@ -65,7 +65,7 @@ elif st.session_state.page == 'intro':
     - Product Type: This is a High Margin Product.
     """)
     
-    # Yıldızlar temizlendi, düz yazı
+    # Düz Metin (Yeşil/Code block oluşmaması için backtick veya yıldız yok)
     st.write(f"Selling Price (p) = ${PRICE} | Unit Cost (c) = ${COST}")
     
     st.divider()
@@ -97,14 +97,15 @@ elif st.session_state.page == 'warmup':
     with st.form("warmup"):
         st.write("### Scenario A: You order 100 tires, but Demand is only 80.")
         
-        # Soru 1'e numara eklendi
+        # SORU 1: Başında "1." var
         q1 = st.radio("1. How many tires do you actually sell?", 
                       ["100 (All my order)", "80 (Only the demand)", "20 (The difference)"])
         
         st.write("2. You have 20 leftover tires. Since the Cost is $3, what is the financial impact?")
-        # Şıklardaki * işareti x yapıldı (Yazı tipi bozulmasın diye)
+        
+        # SORU 2: Yeşil yazı olmaması için tamamen düz metin
         q2 = st.radio("", 
-                      ["I lose $60 (20 tires x $3 cost)", 
+                      ["I lose $60 (because 20 tires x $3 cost = $60)", 
                        "I gain $60", 
                        "Nothing happens"])
         
@@ -112,6 +113,8 @@ elif st.session_state.page == 'warmup':
         
         st.write("### Scenario B: You order 100 tires, but Demand is 120.")
         st.write("3. You missed 20 sales. Since the Profit is $7 ($10 Price - $3 Cost), what is the impact?")
+        
+        # SORU 3: Düz metin
         q3 = st.radio("", 
                       ["I saved money by ordering less", 
                        "I missed out on $140 of potential profit (20 tires x $7 profit)", 
@@ -145,7 +148,6 @@ elif st.session_state.page == 'game':
     if st.session_state.round > 1:
         last = st.session_state.history[-1]
         
-        # Düz yazı formatı
         st.info(f"You ordered {last['Order']} at a cost of ${last['Order'] * COST}. Demand was {last['Demand']}.")
         
         if st.session_state.frame == 'Positive':
@@ -163,8 +165,7 @@ elif st.session_state.page == 'game':
 
     st.divider()
 
-    # --- INSTRUCTION (Temiz Format) ---
-    # Yıldızlar kaldırıldı
+    # --- INSTRUCTION (Temizlendi: Bold/Italic/Code yok) ---
     st.write(f"Your company sells eco-friendly winter tires. You order them for ${COST} each every week and sell them for ${PRICE}.")
     
     st.write(f"""
@@ -173,9 +174,11 @@ elif st.session_state.page == 'game':
     You will decide on the number of products to be ordered each round.
     """)
 
+    # --- FRAMING TEXT ---
     if st.session_state.frame == 'Positive':
+        # HTML içinde sadece düz <strong> (Bold) kullandım, yeşil yazı fontu yok.
         st.markdown(f"""
-        <div style="background-color:#e6fffa;padding:15px;border-radius:10px;border:1px solid #4fd1c5;">
+        <div style="background-color:#e6fffa;padding:15px;border-radius:10px;border:1px solid #4fd1c5; color:black;">
         <ul>
         <li>[ In case of Demand < Ordered Quantity ] You will <strong>earn ${PRICE-COST}</strong> on every demand you sell.</li>
         <li>[ In case of Demand > Ordered Quantity ] You will <strong>earn a profit of ${PRICE-COST}</strong> on each quantity you ordered.</li>
@@ -187,7 +190,7 @@ elif st.session_state.page == 'game':
 
     else: # Negative Frame
         st.markdown(f"""
-        <div style="background-color:#fff5f5;padding:15px;border-radius:10px;border:1px solid #fc8181;">
+        <div style="background-color:#fff5f5;padding:15px;border-radius:10px;border:1px solid #fc8181; color:black;">
         <ul>
         <li>[ In case of Demand < Ordered Quantity ] You will <strong>lose ${COST}</strong> on every product you throw away.</li>
         <li>[ In case of Demand > Ordered Quantity ] You will <strong>lose ${PRICE-COST}</strong> of profit for every demand you could not meet.</li>
@@ -248,16 +251,19 @@ elif st.session_state.page == 'survey':
 
         st.subheader("Section B: Demographics")
         industry = st.text_input("4. Industry / Sector:")
-        experience = st.text_input("5. Years of experience in procurement / purchasing / operations:")
-        company_size = st.text_input("6. Company size (approximate number of employees):")
+        
+        # BURASI GÜNCELLENDİ: Sadece Numara Girilebilir (Number Input)
+        # min_value=0, step=1 diyerek sadece pozitif tam sayı almasını sağlıyoruz.
+        experience = st.number_input("5. Years of experience in procurement / purchasing / operations:", min_value=0, step=1, format="%d")
+        
+        company_size = st.number_input("6. Company size (approximate number of employees):", min_value=0, step=1, format="%d")
 
         st.markdown("---")
 
         st.subheader("Section C: Environmental Awareness")
-        # ÖLÇEK GÜNCELLENDİ: 1-7 Skalası
+        # ÖLÇEK 1-7
         st.caption("Rate 1 (Strongly Disagree) to 7 (Strongly Agree).")
         
-        # 1, 7, 4 -> Min: 1, Max: 7, Default: 4 (Orta nokta)
         eccb_1 = st.slider("1. It is important to me that the products I use do not harm the environment.", 1, 7, 4)
         eccb_2 = st.slider("2. I consider the potential environmental impact of my actions when making many of my decisions.", 1, 7, 4)
         eccb_3 = st.slider("3. My purchase habits are affected by my concern for our environment.", 1, 7, 4)
