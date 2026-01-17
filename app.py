@@ -5,19 +5,16 @@ import requests
 import json
 
 # --- CONFIGURATION ---
-# Kendi SheetDB URL'nizi buraya yapıştırın:
 SHEETDB_URL = "https://sheetdb.io/api/v1/YOUR_EXACT_CODE_HERE" 
 
 ACCESS_CODE = "START" 
-PRICE = 10 
-COST = 3 
+PRICE = 10  # p
+COST = 3    # c
 ROUNDS = 10
 DEMAND_MIN = 50
 DEMAND_MAX = 150
 
 # --- GİZLİ SABİT DEMAND LİSTESİ ---
-# Öğrenciler bunu bilmeyecek, "Rastgele" sanacaklar.
-# Bu sayılar 50-150 aralığından seçilmiş sabit sayılardır.
 FIXED_DEMAND_VALUES = [123, 67, 142, 89, 55, 110, 95, 134, 72, 101]
 
 # --- SESSION STATE INITIALIZATION ---
@@ -29,12 +26,11 @@ if 'warmup_score' not in st.session_state: st.session_state.warmup_score = 0
 if 'survey_data' not in st.session_state: st.session_state.survey_data = {}
 if 'data_sent' not in st.session_state: st.session_state.data_sent = False 
 
-# --- PAGE 0: LOBBY (1-2 GRUP SİSTEMİ) ---
+# --- PAGE 0: LOBBY ---
 if st.session_state.page == 'lobby':
     st.title("Welcome")
     st.info("Please wait for the instructor to provide the Access Code.")
     
-    # Grup Numarası Girişi (1 veya 2)
     group_num = st.text_input("Enter your Group Number (1 or 2):")
     code_input = st.text_input("Enter Access Code:", type="password")
     
@@ -63,14 +59,13 @@ elif st.session_state.page == 'intro':
     weekly order quantities for **eco-friendly winter tires**.
     """)
     
-    # BURADA ÖĞRENCİYE "DEMAND IS UNCERTAIN" DİYEREK HİKAYEYİ KORUYORUZ
     st.write(f"""
     **The Scenario:**
     * **Demand is uncertain:** It will be a random number between **{DEMAND_MIN} and {DEMAND_MAX}** every week.
     * **Product Type:** This is a **High Margin Product**.
     """)
     
-    st.write(f"**Selling Price (p) = ${PRICE}** | **Unit Cost (c) = ${COST}**")
+    st.write(f"Selling Price (p) = ${PRICE} | Unit Cost (c) = ${COST}")
     
     if st.button("Start Warm-Up"):
         st.session_state.page = 'warmup'
@@ -79,19 +74,35 @@ elif st.session_state.page == 'intro':
 # --- PAGE 2: WARM-UP ---
 elif st.session_state.page == 'warmup':
     st.title("Warm-Up")
-    st.write("Please answer the following to verify your understanding.")
-    st.markdown(f"### Reference Values: Price=${PRICE} | Cost=${COST}")
+    st.write("Please answer the following scenarios to ensure you understand the profit and loss logic.")
+    st.info(f"Reference: Selling Price = ${PRICE} | Unit Cost = ${COST}")
     
     with st.form("warmup"):
-        q1 = st.radio("1. You order 100, Demand is 80. How many do you sell?", [100, 80, 20])
-        q2 = st.radio("2. What happens to the leftover 20 units?", ["Kept for next week", "Thrown away (Waste)"])
-        q3 = st.radio("3. What is the profit per unit sold?", ["$10", "$7", "$3"])
+        st.write("### Scenario A: You order 100 tires, but Demand is only 80.")
+        q1 = st.radio("1. How many tires do you actually sell?", 
+                      ["100 (All my order)", "80 (Only the demand)", "20 (The difference)"])
         
-        if st.form_submit_button("Submit"):
+        st.write("2. You have 20 leftover tires. Since the Cost is $3, what is the financial impact?")
+        q2 = st.radio("", 
+                      ["I lose $60 (20 tires * $3 cost)", 
+                       "I gain $60", 
+                       "Nothing happens"])
+        
+        st.markdown("---")
+        
+        st.write("### Scenario B: You order 100 tires, but Demand is 120.")
+        st.write("3. You missed 20 sales. Since the Profit is $7 ($10 Price - $3 Cost), what is the impact?")
+        q3 = st.radio("", 
+                      ["I saved money by ordering less", 
+                       "I missed out on $140 of potential profit (20 tires * $7 profit)", 
+                       "I lost $60"])
+        
+        if st.form_submit_button("Submit Answers"):
             score = 0
-            if q1 == 80: score += 1
-            if q2 == "Thrown away (Waste)": score += 1
-            if q3 == "$7": score += 1
+            if "80" in q1: score += 1
+            if "lose $60" in q2: score += 1
+            if "missed out on $140" in q3: score += 1
+            
             st.session_state.warmup_score = score
             st.session_state.page = 'pre_experiment_transition'
             st.rerun()
@@ -110,35 +121,72 @@ elif st.session_state.page == 'pre_experiment_transition':
 elif st.session_state.page == 'game':
     st.title(f"Round {st.session_state.round}/{ROUNDS}")
     
-    # Önceki Turun Sonuçlarını Göster
+    # --- FEEDBACK SECTION (ROUND 2-10) ---
     if st.session_state.round > 1:
         last = st.session_state.history[-1]
-        st.info(f"Last Round: Order {last['Order']} | Demand {last['Demand']}")
+        
+        # Ortak metin
+        st.info(f"You ordered {last['Order']} at a cost of ${last['Order'] * COST}. Demand was {last['Demand']}.")
+        
+        # Çerçeveye Özel Sonuç Metni
         if st.session_state.frame == 'Positive':
-            st.success(f"Result: Profit of ${last['Profit']}")
+            # "You earned ..."
+            st.success(f"You earned ${last['Profit']}.")
+            st.caption("Any inventory remaining has become obsolete. You should order for this week, conditions have not changed.")
         else:
-            loss = (last['Order']-last['Demand'])*COST if last['Demand']<last['Order'] else (last['Demand']-last['Order'])*(PRICE-COST)
-            st.error(f"Result: You LOST ${loss}")
+            # "You lost ..." (Hesaplama: Prompttaki formüle göre)
+            if last['Demand'] < last['Order']:
+                # Demand < Order -> Loss = Cost * (Order - Demand)
+                loss_val = (last['Order'] - last['Demand']) * COST
+                st.error(f"You lost ${loss_val}.")
+            else:
+                # Demand > Order -> Loss = (10-c) * (Demand - Order)
+                loss_val = (last['Demand'] - last['Order']) * (PRICE - COST)
+                st.error(f"You lost ${loss_val}.")
+            
+            st.caption("Any inventory remaining has become obsolete. You should order for this week, conditions have not changed.")
 
-    # Framing Display (Hedef Gösterimi)
-    st.write(f"**Price: ${PRICE} | Cost: ${COST}**")
+    st.divider()
+
+    # --- INSTRUCTION SECTION (ROUND 1 & REPEATED) ---
+    # Bu metinler Positive/Negative olarak ayrıldı.
     
-    # Öğrenci burada talebin 50-150 arası rastgele dağıldığını okuyor
-    st.write(f"**Demand:** Uniformly distributed between {DEMAND_MIN} and {DEMAND_MAX}")
+    st.write(f"""
+    Your company sells eco-friendly winter tires. You order them for **${COST}** each every week and sell them for **${PRICE}**. 
+    Leftover products will not be utilized for the next periods, and will be thrown away. 
+    Demand is uniformly distributed (U[{DEMAND_MIN},{DEMAND_MAX}]). 
+    You will decide on the number of products to be ordered each round.
+    """)
 
     if st.session_state.frame == 'Positive':
-        st.success("Goal: Maximize Profit. Earn $7 per sale.")
-    else:
-        st.error("Goal: Minimize Losses. Lose $3 per waste or $7 per missed sale.")
+        st.markdown(f"""
+        <div style="background-color:#e6fffa;padding:15px;border-radius:10px;border:1px solid #4fd1c5;">
+        <ul>
+        <li>[ In case of Demand < Ordered Quantity ] You will <strong>earn ${PRICE-COST}</strong> on every demand you sell.</li>
+        <li>[ In case of Demand > Ordered Quantity ] You will <strong>earn a profit of ${PRICE-COST}</strong> on each quantity you ordered.</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        input_label = "How many products would you like to order?" if st.session_state.round > 1 else "How many products would you like to order in the first week?"
 
-    order = st.number_input("Order Quantity:", 0, 300, 100, key=f"q_{st.session_state.round}")
+    else: # Negative Frame
+        st.markdown(f"""
+        <div style="background-color:#fff5f5;padding:15px;border-radius:10px;border:1px solid #fc8181;">
+        <ul>
+        <li>[ In case of Demand < Ordered Quantity ] You will <strong>lose ${COST}</strong> on every product you throw away.</li>
+        <li>[ In case of Demand > Ordered Quantity ] You will <strong>lose ${PRICE-COST}</strong> of profit for every demand you could not meet.</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        input_label = "How many products would you like to order?" if st.session_state.round > 1 else "How many products would you like to order in the first week?"
+
+    # --- INPUT ---
+    order = st.number_input(input_label, 0, 300, 100, key=f"q_{st.session_state.round}")
     
     if st.button("Submit Order"):
-        # --- ARKA PLAN (GİZLİ) ---
-        # Burada rastgele sayı değil, sabit listeden sıradaki sayıyı çekiyoruz.
-        # Öğrenci bunu görmez.
         demand = FIXED_DEMAND_VALUES[st.session_state.round - 1]
-        
         sold = min(order, demand)
         profit = (sold * PRICE) - (order * COST)
         st.session_state.history.append({
@@ -165,31 +213,40 @@ elif st.session_state.page == 'post_experiment_transition':
 elif st.session_state.page == 'survey':
     st.title("Final Survey")
     
+    st.info("""
+    **Instructions:** In the following questions, please assume the role of a **procurement manager** working for a company that purchases products for business use. Your task is to evaluate purchasing 
+    decisions at the firm level, considering factors such as cost efficiency, operational requirements, 
+    and environmental impact. All questions refer to decisions made in your **professional role** as a 
+    procurement manager, not as a private consumer.
+    """)
+    
     with st.form("survey_form"):
-        # Section A: Perception
         st.subheader("Section A: Perception Check")
-        perc_1 = st.radio("1. Role?", ["Evaluate marketing", "Procurement manager", "Final consumer"])
-        perc_2 = st.radio("2. Context?", ["Individual choice", "Long-term strategy", "Short-term purchasing"])
-        perc_3 = st.radio("3. Eco-friendly decision?", ["Minimizing waste", "Avoiding stockouts", "Equal"])
+        perc_1 = st.radio("1. Which statement best reflects the role you were asked to take?", 
+                          ["I was asked to evaluate marketing strategies", "I was asked to make purchasing decisions as a procurement manager", "I was asked to make decisions as a final consumer"])
+        perc_2 = st.radio("2. Which consideration best characterizes the decision context?", 
+                          ["Individual consumer choice based on personal values", "Long-term corporate sustainability strategy", "Short-term purchasing decisions balancing cost efficiency and environmental responsibility"])
+        perc_3 = st.radio("3. Without analyzing it carefully, which inventory decision do you consider more environmentally friendly?", 
+                          ["Ordering a quantity that minimizes overstock and waste", "Ordering a larger quantity to fully avoid stockouts", "Both decisions are equally environmentally friendly"])
 
         st.markdown("---")
-        # Section B: Demographics
+
         st.subheader("Section B: Demographics")
         industry = st.text_input("4. Industry / Sector:")
         experience = st.selectbox("5. Experience:", ["0-1 years", "2-3 years", "4-6 years", "7-10 years", "More than 10 years"])
         company_size = st.selectbox("6. Company size:", ["Fewer than 50", "50-249", "250-999", "1,000 or more"])
 
         st.markdown("---")
-        # Section C: Environmental (GREEN Scale)
+
         st.subheader("Section C: Environmental Awareness")
         st.caption("Rate 1 (Strongly Disagree) to 5 (Strongly Agree).")
         
-        eccb_1 = st.slider("1. No harm to environment", 1, 5, 3)
-        eccb_2 = st.slider("2. Consider impact in decisions", 1, 5, 3)
-        eccb_3 = st.slider("3. Purchase habits affected", 1, 5, 3)
-        eccb_4 = st.slider("4. Concerned about waste", 1, 5, 3)
-        eccb_5 = st.slider("5. Environmentally responsible", 1, 5, 3)
-        eccb_6 = st.slider("6. Willing to be inconvenienced", 1, 5, 3)
+        eccb_1 = st.slider("1. It is important to me that the products I use do not harm the environment.", 1, 5, 3)
+        eccb_2 = st.slider("2. I consider the potential environmental impact of my actions when making many of my decisions.", 1, 5, 3)
+        eccb_3 = st.slider("3. My purchase habits are affected by my concern for our environment.", 1, 5, 3)
+        eccb_4 = st.slider("4. I am concerned about wasting the resources of our planet.", 1, 5, 3)
+        eccb_5 = st.slider("5. I would describe myself as environmentally responsible.", 1, 5, 3)
+        eccb_6 = st.slider("6. I am willing to be inconvenienced in order to take actions that are more environmentally friendly.", 1, 5, 3)
         
         if st.form_submit_button("Submit Survey"):
             st.session_state.survey_data = {
@@ -211,7 +268,6 @@ elif st.session_state.page == 'thank_you':
     for k, v in st.session_state.survey_data.items():
         df[k] = v
     
-    # Auto-Save to SheetDB
     if not st.session_state.data_sent:
         with st.spinner("Saving your data..."):
             try:
