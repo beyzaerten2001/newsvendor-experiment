@@ -55,32 +55,32 @@ elif st.session_state.page == 'intro':
     st.write("### Instructions")
     
     st.info("""
-    **Role:** You will act as a **procurement manager** for 10 rounds, deciding on 
-    weekly order quantities for **eco-friendly winter tires**.
+    Role: You will act as a procurement manager for 10 rounds, deciding on 
+    weekly order quantities for eco-friendly winter tires.
     """)
     
     st.write(f"""
-    **The Scenario:**
-    * **Demand is uncertain:** It will be a random number between **{DEMAND_MIN} and {DEMAND_MAX}** every week.
-    * **Product Type:** This is a **High Margin Product**.
+    The Scenario:
+    - Demand is uncertain: It will be a random number between {DEMAND_MIN} and {DEMAND_MAX} every week.
+    - Product Type: This is a High Margin Product.
     """)
     
+    # Yıldızlar temizlendi, düz yazı
     st.write(f"Selling Price (p) = ${PRICE} | Unit Cost (c) = ${COST}")
     
     st.divider()
     
-    # --- EKSTRA AÇIKLAMA ---
     st.subheader("How your result is calculated:")
     st.markdown("""
     Your goal is to find the right balance between ordering too much and ordering too little.
     
-    **1. If Demand < Order (Too much inventory):**
-    * You sell what is demanded.
-    * The leftover tires are waste. You **lose the Cost ($3)** for every unsold tire.
+    1. If Demand < Order (Too much inventory):
+    - You sell what is demanded.
+    - The leftover tires are waste. You lose the Cost ($3) for every unsold tire.
     
-    **2. If Demand > Order (Too little inventory):**
-    * You sell everything you ordered.
-    * You miss out on potential customers. You **lose the potential Profit ($7)** for every sale you missed.
+    2. If Demand > Order (Too little inventory):
+    - You sell everything you ordered.
+    - You miss out on potential customers. You lose the potential Profit ($7) for every sale you missed.
     """)
     st.divider()
     
@@ -96,12 +96,15 @@ elif st.session_state.page == 'warmup':
     
     with st.form("warmup"):
         st.write("### Scenario A: You order 100 tires, but Demand is only 80.")
+        
+        # Soru 1'e numara eklendi
         q1 = st.radio("1. How many tires do you actually sell?", 
                       ["100 (All my order)", "80 (Only the demand)", "20 (The difference)"])
         
         st.write("2. You have 20 leftover tires. Since the Cost is $3, what is the financial impact?")
+        # Şıklardaki * işareti x yapıldı (Yazı tipi bozulmasın diye)
         q2 = st.radio("", 
-                      ["I lose $60 (20 tires * $3 cost)", 
+                      ["I lose $60 (20 tires x $3 cost)", 
                        "I gain $60", 
                        "Nothing happens"])
         
@@ -111,7 +114,7 @@ elif st.session_state.page == 'warmup':
         st.write("3. You missed 20 sales. Since the Profit is $7 ($10 Price - $3 Cost), what is the impact?")
         q3 = st.radio("", 
                       ["I saved money by ordering less", 
-                       "I missed out on $140 of potential profit (20 tires * $7 profit)", 
+                       "I missed out on $140 of potential profit (20 tires x $7 profit)", 
                        "I lost $60"])
         
         if st.form_submit_button("Submit Answers"):
@@ -128,7 +131,7 @@ elif st.session_state.page == 'warmup':
 elif st.session_state.page == 'pre_experiment_transition':
     st.title("Ready to Start")
     st.success("Warm-up complete!")
-    st.write(f"You will now play **{ROUNDS} rounds**.")
+    st.write(f"You will now play {ROUNDS} rounds.")
     st.warning("Click below to begin Round 1.")
     if st.button("Start Experiment"):
         st.session_state.page = 'game'
@@ -142,6 +145,7 @@ elif st.session_state.page == 'game':
     if st.session_state.round > 1:
         last = st.session_state.history[-1]
         
+        # Düz yazı formatı
         st.info(f"You ordered {last['Order']} at a cost of ${last['Order'] * COST}. Demand was {last['Demand']}.")
         
         if st.session_state.frame == 'Positive':
@@ -159,8 +163,9 @@ elif st.session_state.page == 'game':
 
     st.divider()
 
-    # --- INSTRUCTION (Font Fixed) ---
-    st.write(f"Your company sells eco-friendly winter tires. You order them for **${COST}** each every week and sell them for **${PRICE}**.")
+    # --- INSTRUCTION (Temiz Format) ---
+    # Yıldızlar kaldırıldı
+    st.write(f"Your company sells eco-friendly winter tires. You order them for ${COST} each every week and sell them for ${PRICE}.")
     
     st.write(f"""
     Leftover products will not be utilized for the next periods, and will be thrown away. 
@@ -224,9 +229,9 @@ elif st.session_state.page == 'survey':
     st.title("Final Survey")
     
     st.info("""
-    **Instructions:** In the following questions, please assume the role of a **procurement manager** working for a company that purchases products for business use. Your task is to evaluate purchasing 
+    Instructions: In the following questions, please assume the role of a procurement manager working for a company that purchases products for business use. Your task is to evaluate purchasing 
     decisions at the firm level, considering factors such as cost efficiency, operational requirements, 
-    and environmental impact. All questions refer to decisions made in your **professional role** as a 
+    and environmental impact. All questions refer to decisions made in your professional role as a 
     procurement manager, not as a private consumer.
     """)
     
@@ -242,7 +247,6 @@ elif st.session_state.page == 'survey':
         st.markdown("---")
 
         st.subheader("Section B: Demographics")
-        # --- BURASI DÜZELTİLDİ: ARTIK HEPSİ OPEN QUESTION (TEXT INPUT) ---
         industry = st.text_input("4. Industry / Sector:")
         experience = st.text_input("5. Years of experience in procurement / purchasing / operations:")
         company_size = st.text_input("6. Company size (approximate number of employees):")
@@ -250,14 +254,16 @@ elif st.session_state.page == 'survey':
         st.markdown("---")
 
         st.subheader("Section C: Environmental Awareness")
-        st.caption("Rate 1 (Strongly Disagree) to 5 (Strongly Agree).")
+        # ÖLÇEK GÜNCELLENDİ: 1-7 Skalası
+        st.caption("Rate 1 (Strongly Disagree) to 7 (Strongly Agree).")
         
-        eccb_1 = st.slider("1. It is important to me that the products I use do not harm the environment.", 1, 5, 3)
-        eccb_2 = st.slider("2. I consider the potential environmental impact of my actions when making many of my decisions.", 1, 5, 3)
-        eccb_3 = st.slider("3. My purchase habits are affected by my concern for our environment.", 1, 5, 3)
-        eccb_4 = st.slider("4. I am concerned about wasting the resources of our planet.", 1, 5, 3)
-        eccb_5 = st.slider("5. I would describe myself as environmentally responsible.", 1, 5, 3)
-        eccb_6 = st.slider("6. I am willing to be inconvenienced in order to take actions that are more environmentally friendly.", 1, 5, 3)
+        # 1, 7, 4 -> Min: 1, Max: 7, Default: 4 (Orta nokta)
+        eccb_1 = st.slider("1. It is important to me that the products I use do not harm the environment.", 1, 7, 4)
+        eccb_2 = st.slider("2. I consider the potential environmental impact of my actions when making many of my decisions.", 1, 7, 4)
+        eccb_3 = st.slider("3. My purchase habits are affected by my concern for our environment.", 1, 7, 4)
+        eccb_4 = st.slider("4. I am concerned about wasting the resources of our planet.", 1, 7, 4)
+        eccb_5 = st.slider("5. I would describe myself as environmentally responsible.", 1, 7, 4)
+        eccb_6 = st.slider("6. I am willing to be inconvenienced in order to take actions that are more environmentally friendly.", 1, 7, 4)
         
         if st.form_submit_button("Submit Survey"):
             st.session_state.survey_data = {
